@@ -18,7 +18,7 @@ class RawWebsite:
 
 system_prompt_parody = "You are an assistant that receives a website in raw HTML format \
 and converts it into a parody website, using the received content and with layout and formatting similar to the original. \
-Respond with ONLY the result HTML file, no other remarks - just return a raw HTML. In addition, look for any relative paths inside the HTML and replace them with the website URL, which will be provided as well."
+Respond with ONLY the result HTML file, no other remarks - just return a raw HTML. DO NOT modify filenames, tags, scripts - only text. In addition, look for any relative paths inside the HTML and prepend them with the website URL, which will be provided as well - so that the HTML can be viewed locally."
 
 def user_prompt_for_parody(website):
     user_prompt = f"The URL of the website is: {website.url}\nThe HTML content of the website to parodize is:\n {website.response}"
@@ -55,6 +55,14 @@ def url_to_filename(url: str) -> str:
     # Limit filename length and append .html
     return safe_path[:255] + ".html"
 
+def extract_tagged_substring(text):
+    start = text.find('<')
+    end = text.rfind('>')
+
+    if start == -1 or end == -1 or start > end:
+        return None  # or raise an error, or return "", depending on your needs
+
+    return text[start:end+1]
 
 if len(sys.argv) != 2:
     print("Please provide a URL")
@@ -64,9 +72,14 @@ url = sys.argv[1]
 print(f"Fetching from URL {url}")
 website = RawWebsite(url)
 
+print("HTML content:\n")
+print(website.response)
+
+print
 print("Asking model to parodize...")
 content = parodize(website)
+sanitized_content = extract_tagged_substring(content)
 
 filename = url_to_filename(url)
 print(f"Writing to file {url}")
-write_to_file(filename, content)
+write_to_file(filename, sanitized_content)
